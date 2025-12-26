@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* AQI Gauge animations */
+@keyframes gauge-fill {
+  from {
+    stroke-dashoffset: 283;
+  }
+}
+
+.gauge-circle {
+  animation: gauge-fill 1s ease-out forwards;
+}
+
+/* Card hover effects */
+.sensor-card {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.sensor-card:hover {
+  @apply transform -translate-y-1 shadow-lg;
+}
+
+/* Status indicator pulse */
+.status-live {
+  @apply relative;
+}
+
+.status-live::before {
+  content: '';
+  @apply absolute w-2 h-2 bg-green-500 rounded-full -left-3 top-1/2 -translate-y-1/2;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateY(-50%) scale(1.2);
+  }
+}
+
+/* Model selector buttons */
+.model-btn {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200;
+}
+
+.model-btn-active {
+  @apply bg-blue-600 text-white shadow-lg shadow-blue-500/30;
+}
+
+.model-btn-inactive {
+  @apply bg-gray-700 text-gray-300 hover:bg-gray-600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .aqi-gauge {
+    @apply w-32 h-32;
+  }
+}

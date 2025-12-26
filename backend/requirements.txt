@@ -1,0 +1,26 @@
+# Install with: pip install -r requirements.txt --break-system-packages
+
+# Web Framework
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# Serial Communication (Arduino)
+pyserial>=3.5
+
+# Machine Learning - Core
+scikit-learn>=1.3.0
+numpy>=1.24.0
+pandas>=2.0.0
+joblib>=1.3.0
+
+# Machine Learning - XGBoost
+xgboost>=2.0.0
+
+# Machine Learning - Neural Networks & LSTM
+tensorflow>=2.15.0
+
+# Tsetlin Machine (optional - comment out if issues)
+pyTsetlinMachine>=0.6.0
+
+# Utilities
+python-dateutil>=2.8.0

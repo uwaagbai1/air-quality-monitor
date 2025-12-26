@@ -1,0 +1,12 @@
+node_modules/
+__pycache__/
+*.pyc
+*.db
+venv/
+env/
+.env
+*.pkl
+ml/saved_models/
+ml/forecasting/models/
+dist/
+.DS_Store
