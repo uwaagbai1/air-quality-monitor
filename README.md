@@ -332,7 +332,7 @@ python -m ml.forecasting.train_forecast
 **Uwa Uwa Agbai**
 - MSc Embedded Systems & IoT, Newcastle University
 - Research: Energy-Efficient AI Hardware
-- [LinkedIn](https://linkedin.com/in/uwaagbai)
+- [LinkedIn](https://linkedin.com/in/uwa-agbai)
 - [GitHub](https://github.com/uwaagbai1)
 
 ## 📄 License
