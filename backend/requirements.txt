@@ -7,6 +7,9 @@ flask-cors>=4.0.0
 # Serial Communication (Arduino)
 pyserial>=3.5
 
+# MQTT (Wi-Fi sensor nodes)
+paho-mqtt>=1.6
+
 # Machine Learning - Core
 scikit-learn>=1.3.0
 numpy>=1.24.0

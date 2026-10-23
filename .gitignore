@@ -10,3 +10,6 @@ ml/saved_models/
 ml/forecasting/models/
 dist/
 .DS_Store
+# Firmware
+firmware/.pio/
+firmware/include/secrets.h

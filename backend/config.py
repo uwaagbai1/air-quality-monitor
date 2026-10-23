@@ -12,6 +12,11 @@ DB_PATH = os.path.join(os.path.dirname(__file__), 'readings.db')
 SERIAL_PORT = os.getenv('SERIAL_PORT', '/dev/ttyUSB0')
 SERIAL_BAUD = 115200
 
+# MQTT (Wi-Fi sensor nodes)
+MQTT_HOST = os.getenv('MQTT_HOST', 'localhost')
+MQTT_PORT = int(os.getenv('MQTT_PORT', 1883))
+MQTT_TOPIC_PREFIX = 'aq'  # nodes publish to aq/<node_id>/reading
+
 # Demo mode
 DEMO_MODE = os.getenv('DEMO_MODE', 'false').lower() == 'true'
 DEMO_INTERVAL = 3  # seconds between simulated readings

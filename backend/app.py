@@ -11,7 +11,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 # Local imports
-from config import HOST, PORT, CORS_ORIGINS, SERIAL_PORT, SERIAL_BAUD
+from config import HOST, PORT, CORS_ORIGINS, SERIAL_PORT, SERIAL_BAUD, MQTT_HOST, MQTT_PORT
 from database import (
     init_db, save_reading, get_latest_reading, 
     get_readings, get_readings_for_chart, get_stats,
@@ -481,6 +481,9 @@ def main():
                         help='Run in demo mode with simulated data')
     parser.add_argument('--port', type=int, default=PORT,
                         help=f'Server port (default: {PORT})')
+    parser.add_argument('--source', choices=['serial', 'mqtt'],
+                        default=os.getenv('SOURCE', 'serial'),
+                        help='Where live readings come from: USB serial or MQTT over Wi-Fi (default: serial)')
     args = parser.parse_args()
     
     demo_mode = args.demo
@@ -491,8 +494,10 @@ def main():
     print("=" * 55)
     if demo_mode:
         print("  Mode: 🎮 DEMO (simulated sensor data)")
+    elif args.source == 'mqtt':
+        print(f"  Mode: 📡 LIVE over Wi-Fi (MQTT broker {MQTT_HOST}:{MQTT_PORT})")
     else:
-        print("  Mode: 📡 LIVE (waiting for Arduino)")
+        print("  Mode: 🔌 LIVE over USB serial (waiting for the board)")
     print("=" * 55)
     print()
     
@@ -519,6 +524,9 @@ def main():
     # Start data source
     if demo_mode:
         simulator.start(callback=process_reading)
+    elif args.source == 'mqtt':
+        import mqtt_source
+        mqtt_source.start(callback=process_reading)
     else:
         reader_thread = threading.Thread(target=serial_reader_thread, daemon=True)
         reader_thread.start()

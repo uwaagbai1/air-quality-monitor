@@ -84,8 +84,8 @@ def save_reading(data: Dict[str, Any]) -> int:
             INSERT INTO readings 
             (node_id, location, temperature, humidity, pressure, 
              gas_resistance, aqi, prediction_category, prediction_label,
-             prediction_confidence, model_used, inference_time_ms)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             prediction_confidence, model_used, inference_time_ms, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))
         ''', (
             data.get('node_id', 'default'),
             data.get('location', 'Room'),
@@ -99,6 +99,7 @@ def save_reading(data: Dict[str, Any]) -> int:
             data.get('prediction', {}).get('confidence'),
             data.get('model_used', 'rule_based'),
             data.get('inference_time_ms'),
+            data.get('measured_at_utc'),  # set for late readings, else arrival time
         ))
         db.commit()
         return cursor.lastrowid

@@ -1,346 +1,222 @@
-# 🌡️ Air Quality Monitor
+# Air Quality Monitor
 
-> Real-time IoT air quality monitoring system with ML-powered predictions, 6-hour forecasting, and intelligent alerts.
+An IoT air-quality monitor built around a BME680 sensor on an ESP8266. Each node sends readings over **Wi-Fi to an MQTT broker** (or over USB serial as a fallback). A Flask backend stores them, runs ML models and a 6-hour forecast, and raises alerts on a live React dashboard.
 
-![Dashboard](https://img.shields.io/badge/Dashboard-React-61DAFB?style=flat&logo=react)
-![Backend](https://img.shields.io/badge/Backend-Flask-000000?style=flat&logo=flask)
-![ML](https://img.shields.io/badge/ML-scikit--learn-F7931E?style=flat&logo=scikit-learn)
-![IoT](https://img.shields.io/badge/IoT-ESP8266-E7352C?style=flat&logo=espressif)
+![Dashboard](screenshots/dashboard1.png)
 
-## 📸 Screenshots
+<details>
+<summary>More screenshots</summary>
 
-![Dashboard View 1 Screenshot](screenshots/dashboard1.png)
-![Dashboard View 2 Screenshot](screenshots/dashboard2.png)
-![Dashboard View 3 Screenshot](screenshots/dashboard3.png)
+![Dashboard view 2](screenshots/dashboard2.png)
+![Dashboard view 3](screenshots/dashboard3.png)
 
-## 📖 Overview
+</details>
 
-A full-stack IoT application that monitors air quality using a BME680 environmental sensor, processes data through 6 different machine learning models, forecasts AQI 6 hours ahead using LSTM neural networks, and provides real-time alerts. Built as a portfolio project demonstrating embedded systems, full-stack development, and edge AI.
+## Features
 
-## ✨ Features
+| | |
+|---|---|
+| **Wi-Fi/MQTT telemetry** | Nodes publish JSON readings to `aq/<node>/reading` every 30 s |
+| **Survives dropouts** | Non-blocking reconnect with back-off (1 s up to 30 s); readings are buffered on the node while offline and sent later with their age, so the backend stores them at the time they were measured |
+| **Online/offline status** | Retained status topic with an MQTT last-will message, so the backend knows when a node disappears |
+| **Remote commands** | `READ`, `STATUS`, `INFO`, `PING` over MQTT (`aq/<node>/cmd`) or serial |
+| **On-device air-quality index** | Humidity-compensated index (0–500) from the BME680 gas resistance, computed on the ESP8266 |
+| **6 ML models compared** | Decision tree, random forest, XGBoost, neural network, logistic regression and a Tsetlin machine, compared on inference time and estimated energy |
+| **6-hour forecast** | LSTM time-series forecast of the air-quality index |
+| **Alerts** | Threshold, anomaly (sudden spikes), trend (sustained worsening) and forecast-based alerts |
+| **Dashboard** | React + Recharts, live readings, history, forecast and alerts, dark/light mode |
 
-| Feature | Description |
-|---------|-------------|
-| 🔴 **Real-time Monitoring** | Live sensor data streaming every 30 seconds |
-| 🤖 **6 ML Models** | Compare Decision Tree, Random Forest, XGBoost, Neural Network, Logistic Regression, Tsetlin Machine |
-| 📈 **6-Hour Forecasting** | LSTM time-series prediction for AQI trends |
-| 🚨 **Smart Alerts** | Threshold, predictive, anomaly, and trend detection |
-| 💡 **AI Insights** | Natural language summaries of air quality conditions |
-| ⚡ **Energy Profiling** | Battery life estimation for edge deployment |
-| 🌙 **Dark/Light Mode** | Automatic theme detection with manual toggle |
-| 📊 **Interactive Dashboard** | React-based real-time visualization |
-
-## 🏗️ System Architecture
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         SYSTEM ARCHITECTURE                             │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│   HARDWARE LAYER                                                        │
-│   ┌─────────────┐     ┌─────────────┐                                  │
-│   │  BME680     │────▶│  WeMos D1   │                                  │
-│   │  Sensor     │I2C  │  ESP8266    │                                  │
-│   │             │     │             │                                  │
-│   │ • Temp      │     │ • AQI Calc  │                                  │
-│   │ • Humidity  │     │ • JSON Out  │                                  │
-│   │ • Pressure  │     │             │                                  │
-│   │ • Gas (VOC) │     └──────┬──────┘                                  │
-│   └─────────────┘            │ USB Serial (115200 baud)                │
-│                              ▼                                          │
-│   BACKEND LAYER        ┌─────────────┐                                 │
-│                        │ Flask API   │                                 │
-│                        │             │                                 │
-│                        │ • Serial RX │                                 │
-│                        │ • ML Infer  │                                 │
-│                        │ • Alerts    │                                 │
-│                        │ • REST API  │                                 │
-│                        └──────┬──────┘                                 │
-│                               │                                         │
-│   ML LAYER            ┌──────┴──────┐                                  │
-│                       │             │                                   │
-│              ┌────────┴───┐   ┌─────┴─────┐                            │
-│              │ 6 Models   │   │ LSTM      │                            │
-│              │            │   │ Forecast  │                            │
-│              │ •Dec Tree  │   │           │                            │
-│              │ •Rand For  │   │ 6-hour    │                            │
-│              │ •XGBoost   │   │ prediction│                            │
-│              │ •LogReg    │   │           │                            │
-│              │ •Neural    │   └───────────┘                            │
-│              │ •Tsetlin   │                                            │
-│              └────────────┘                                            │
-│                               │                                         │
-│   DATABASE             ┌──────┴──────┐                                 │
-│                        │  SQLite     │                                 │
-│                        │  readings   │                                 │
-│                        │  alerts     │                                 │
-│                        └──────┬──────┘                                 │
-│                               │ REST API                               │
-│   FRONTEND             ┌──────┴──────┐                                 │
-│                        │   React     │                                 │
-│                        │  Dashboard  │                                 │
-│                        │             │                                 │
-│                        │ • AQI Gauge │                                 │
-│                        │ • Charts    │                                 │
-│                        │ • Forecast  │                                 │
-│                        │ • Alerts    │                                 │
-│                        │ • Dark Mode │                                 │
-│                        └─────────────┘                                 │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+  BME680 ──I2C──▶ ESP8266 (WeMos D1)
+                   • reads sensor every 30 s
+                   • computes air-quality index
+                   • buffers readings while offline
+                        │
+          ┌─────────────┴──────────────┐
+     Wi-Fi / MQTT                 USB serial (fallback)
+          │                            │
+          ▼                            │
+   MQTT broker (Mosquitto)             │
+     aq/<node>/reading                 │
+     aq/<node>/status (last will)      │
+     aq/<node>/cmd  ◀── commands       │
+          │                            │
+          └─────────────┬──────────────┘
+                        ▼
+              Flask backend (Python)
+               • ML classification + LSTM forecast
+               • alert manager
+               • SQLite storage
+               • REST API
+                        │
+                        ▼
+               React dashboard (Vite)
 ```
 
-## 🛠️ Tech Stack
+The ML models run on the backend, not on the microcontroller. The node only computes the rule-based air-quality index.
 
-### Hardware
-- **Microcontroller:** WeMos D1 Mini (ESP8266)
-- **Sensor:** BME680 (Temperature, Humidity, Pressure, Gas/VOC)
-- **Communication:** I2C (sensor) + USB Serial (to backend)
+## Hardware
 
-### Backend
-- **Framework:** Flask (Python)
-- **Database:** SQLite
-- **ML Libraries:** scikit-learn, XGBoost, TensorFlow/Keras, pyTsetlinMachine
-- **Serial Communication:** PySerial
+- **Board:** WeMos D1 (ESP8266)
+- **Sensor:** Bosch BME680 (temperature, humidity, pressure, gas/VOC)
 
-### Frontend
-- **Framework:** React 18 + Vite
-- **Styling:** Tailwind CSS
-- **Charts:** Recharts
-- **Icons:** Lucide React
+| BME680 | ESP8266 | Notes |
+|---|---|---|
+| VCC | 3.3V | Do not use 5V |
+| GND | GND | |
+| SCL | GPIO5 | I2C clock |
+| SDA | GPIO4 | I2C data |
+| SDO | GND | I2C address 0x76 (0x77 if tied to 3.3V; the firmware tries both) |
+| CS | 3.3V | Selects I2C mode |
 
-### Machine Learning
-| Model | Accuracy | Inference | Energy | Battery Life |
-|-------|----------|-----------|--------|--------------|
-| Random Forest | 100.0% | 62.6ms | 3.84mJ | 676 days |
-| **Decision Tree** | **100.0%** | **0.4ms** | **0.004mJ** | **1540 days** |
-| XGBoost | 99.8% | 3.6ms | 0.69mJ | 1253 days |
-| Logistic Regression | 99.7% | 1.1ms | 0.005mJ | 1539 days |
-| Neural Network | 99.4% | 1.3ms | 0.14mJ | 1475 days |
-| Tsetlin Machine ⚡ | 96.7% | 23.9ms | 0.58mJ | 1291 days |
+## MQTT topics
 
-> ⚡ **Key Insight:** Decision Tree achieves 100% accuracy with the fastest inference, making it ideal for edge deployment. Tsetlin Machine offers excellent energy efficiency with competitive accuracy - perfect for FPGA implementation.
+| Topic | Direction | Payload |
+|---|---|---|
+| `aq/<node>/reading` | node → backend | Reading JSON (below) |
+| `aq/<node>/status` | node → backend | `{"status":"online"}` / `{"status":"offline"}` (retained; offline is the last will) |
+| `aq/<node>/cmd` | you → node | `READ`, `STATUS`, `INFO` or `PING` |
+| `aq/<node>/reply` | node → you | Command replies, e.g. Wi-Fi signal strength and buffer state for `STATUS` |
 
-## 📁 Project Structure
+Example reading:
 
-```
-air-quality-pro/
-├── arduino/                    # Microcontroller firmware
-│   └── air_quality_node.ino   # Arduino sketch
-│
-├── platformio/                 # PlatformIO project
-│   ├── platformio.ini
-│   └── src/main.cpp
-│
-├── backend/
-│   ├── app.py                 # Flask application
-│   ├── database.py            # SQLite operations
-│   ├── config.py              # Configuration
-│   ├── simulator.py           # Demo mode data generator
-│   ├── alerts/
-│   │   └── alert_manager.py   # Alert system
-│   └── ml/
-│       ├── model_manager.py   # ML model loader
-│       ├── train_all.py       # Model training script
-│       ├── models/            # Model implementations
-│       ├── saved_models/      # Trained model files (.pkl)
-│       └── forecasting/
-│           ├── lstm_model.py  # LSTM forecaster
-│           └── train_forecast.py
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── ModernDashboard.jsx
-│   │   │   ├── Sidebar.jsx
-│   │   │   ├── AlertPanel.jsx
-│   │   │   ├── AIInsights.jsx
-│   │   │   ├── ForecastChart.jsx
-│   │   │   └── ...
-│   │   └── hooks/
-│   │       └── useSensorData.js
-│   ├── tailwind.config.js
-│   └── package.json
-│
-├── data/
-│   └── AirQualityUCI.csv      # Training dataset
-│
-└── README.md
+```json
+{"type":"reading","node_id":"bme680_node_01","location":"Room","temperature":21.48,
+ "humidity":45.20,"pressure":1012.30,"gas_resistance":95000,"aqi":55,
+ "reading_num":42,"age_ms":0}
 ```
 
-## 🚀 Quick Start
+`age_ms` is how long ago the reading was taken. It is 0 for live readings and larger for readings sent after a dropout.
 
-### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- Arduino IDE or PlatformIO (for hardware)
+## Getting started
 
-### 1. Clone Repository
+### 1. MQTT broker
+
 ```bash
-git clone https://github.com/uwaagbai1/air-quality-pro.git
-cd air-quality-pro
+sudo apt install mosquitto mosquitto-clients
 ```
 
-### 2. Backend Setup
+Mosquitto 2 only accepts local connections by default. To let the board connect, create `/etc/mosquitto/conf.d/aq.conf`:
+
+```
+listener 1883 0.0.0.0
+allow_anonymous true
+```
+
+Then `sudo systemctl restart mosquitto`. This open setup is for a home or lab network only.
+
+### 2. Firmware
+
+```bash
+cd firmware
+cp include/secrets.example.h include/secrets.h   # add Wi-Fi name, password and your computer's IP
+pio run --target upload
+pio device monitor                                # serial output
+```
+
+`secrets.h` is ignored by git. The ESP8266 only joins 2.4 GHz WPA2-Personal networks (not university/enterprise Wi-Fi); a phone hotspot works.
+
+Watch readings arrive:
+
+```bash
+mosquitto_sub -h localhost -t 'aq/#' -v
+mosquitto_pub -h localhost -t aq/bme680_node_01/cmd -m STATUS
+```
+
+The original serial-only sketch is kept in `arduino/air_quality_node.ino`.
+
+### 3. Backend
+
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
+python ml/train_all.py                      # train the 6 classifiers
 
-# Train ML models
-python ml/train_all.py
-
-# Train forecast model (optional - needs 50+ readings)
-python -m ml.forecasting.train_forecast
+python app.py --source mqtt                 # readings over Wi-Fi (MQTT_HOST/MQTT_PORT env vars, default localhost:1883)
+python app.py                               # readings over USB serial
+python app.py --demo                        # simulated readings, no hardware
 ```
 
-### 3. Frontend Setup
+### 4. Dashboard
+
 ```bash
 cd frontend
 npm install
+npm run dev     # http://localhost:5173
 ```
 
-### 4. Run Application
+## ML models
 
-**With hardware:**
-```bash
-# Terminal 1 - Backend
-cd backend && python app.py
+Six classifiers predict one of five air-quality categories (good, moderate, unhealthy for sensitive groups, unhealthy, very unhealthy) from temperature, humidity and gas resistance. They are trained on the [UCI Air Quality dataset](https://archive.ics.uci.edu/dataset/360/air+quality).
 
-# Terminal 2 - Frontend
-cd frontend && npm run dev
+| Model | Inference time | Est. energy per inference |
+|---|---|---|
+| Decision tree | 0.4 ms | 0.004 mJ |
+| Logistic regression | 1.1 ms | 0.005 mJ |
+| Neural network | 1.3 ms | 0.14 mJ |
+| XGBoost | 3.6 ms | 0.69 mJ |
+| Tsetlin machine | 23.9 ms | 0.58 mJ |
+| Random forest | 62.6 ms | 3.84 mJ |
+
+Times are measured on the backend computer. Energy is an estimate (assumed power × inference time), not a measurement. All six reach near-perfect accuracy because the category label is a threshold on gas resistance, which is also an input, so accuracy does not separate them; speed and energy do. A label from an independent reference instrument would be the next step.
+
+The LSTM forecaster uses the last 24 hours of readings to predict the next 6 hours (`python -m ml.forecasting.train_forecast`, needs collected data).
+
+## Project structure
+
+```
+air-quality-monitor/
+├── firmware/                  # PlatformIO project (Wi-Fi/MQTT + serial)
+│   ├── platformio.ini
+│   ├── include/secrets.example.h
+│   └── src/main.cpp
+├── arduino/
+│   └── air_quality_node.ino   # original serial-only sketch
+├── backend/
+│   ├── app.py                 # Flask API, data sources, startup
+│   ├── mqtt_source.py         # MQTT subscriber
+│   ├── config.py
+│   ├── database.py            # SQLite
+│   ├── simulator.py           # demo data
+│   ├── alerts/alert_manager.py
+│   └── ml/                    # classifiers, training, LSTM forecasting
+├── frontend/                  # React + Vite dashboard
+└── screenshots/
 ```
 
-**Demo mode (no hardware):**
-```bash
-# Terminal 1 - Backend with simulated data
-cd backend && python app.py --demo
-
-# Terminal 2 - Frontend
-cd frontend && npm run dev
-```
-
-### 5. Open Dashboard
-Navigate to `http://localhost:5173`
-
-## 📡 API Endpoints
+## API
 
 | Endpoint | Method | Description |
-|----------|--------|-------------|
+|---|---|---|
 | `/api/health` | GET | Health check |
-| `/api/latest` | GET | Latest sensor reading |
+| `/api/latest` | GET | Latest reading |
 | `/api/readings?hours=24` | GET | Historical readings |
 | `/api/stats?hours=24` | GET | Aggregated statistics |
-| `/api/chart?hours=24` | GET | Chart-formatted data |
-| `/api/models` | GET | List available ML models |
-| `/api/models/compare` | GET | Model comparison metrics |
+| `/api/chart?hours=24` | GET | Chart data |
+| `/api/models` | GET | Available models |
+| `/api/models/compare` | GET | Model comparison |
 | `/api/models/set` | POST | Switch active model |
-| `/api/forecast` | GET | 6-hour AQI forecast |
+| `/api/forecast` | GET | 6-hour forecast |
 | `/api/forecast/summary` | GET | Hourly forecast summary |
 | `/api/alerts/active` | GET | Active alerts |
-| `/api/alerts/<id>/acknowledge` | POST | Acknowledge alert |
-| `/api/alerts/<id>/dismiss` | POST | Dismiss alert |
+| `/api/alerts/<id>/acknowledge` | POST | Acknowledge an alert |
+| `/api/alerts/<id>/dismiss` | POST | Dismiss an alert |
 
-## 🔧 Hardware Setup
+## Next steps
 
-### Wiring Diagram (BME680 → WeMos D1 Mini)
+- [ ] Several nodes on one broker (the topics already include the node ID)
+- [ ] Deep sleep between readings for battery power
+- [ ] TLS and username/password on the broker
+- [ ] Docker setup
 
-| BME680 Pin | WeMos Pin | Description |
-|------------|-----------|-------------|
-| VCC | 3.3V | Power (do NOT use 5V) |
-| GND | GND | Ground |
-| SCL | D1 (GPIO5) | I2C Clock |
-| SDA | D2 (GPIO4) | I2C Data |
-| SDO | GND | Address select (0x76) |
-| CS | 3.3V | Enable I2C mode |
+## Author
 
-### Upload Firmware
+**Uwa Uwa Agbai**, MSc Embedded Systems and Internet of Things, Newcastle University
+[LinkedIn](https://linkedin.com/in/uwa-agbai) · [GitHub](https://github.com/uwaagbai1)
 
-**Using PlatformIO (recommended):**
-```bash
-cd platformio
-pio run --target upload
-pio device monitor  # View serial output
-```
+## License
 
-**Using Arduino IDE:**
-1. Open `arduino/air_quality_node.ino`
-2. Select Board: "LOLIN(WeMos) D1 R1"
-3. Select Port: `/dev/ttyUSB0` (Linux) or `COM3` (Windows)
-4. Click Upload
-
-## 🧠 ML Model Training
-
-### Classification Models
-Models are trained on the UCI Air Quality dataset with 4 classes:
-- Good (0-50 AQI)
-- Moderate (51-100 AQI)
-- Unhealthy for Sensitive Groups (101-150 AQI)
-- Unhealthy (151-200 AQI)
-
-**Features:** Temperature, Humidity, Gas Resistance
-
-```bash
-# Train all 6 models
-cd backend
-python ml/train_all.py
-```
-
-### LSTM Forecasting
-The LSTM model predicts AQI 6 hours ahead using:
-- **Input:** Last 24 hours of readings (288 data points @ 5-min intervals)
-- **Output:** Next 6 hours prediction (72 data points)
-- **Architecture:** 2-layer LSTM (64→32 units) with dropout
-- **MAE:** ~4 AQI points
-
-```bash
-# Train forecast model (needs historical data)
-python -m ml.forecasting.train_forecast
-```
-
-## 🚨 Alert System
-
-| Alert Type | Trigger | Example |
-|------------|---------|---------|
-| **Threshold** | AQI crosses EPA levels | "Unhealthy Air Quality" when AQI > 150 |
-| **Predictive** | Forecast predicts bad air | "AQI Expected to Reach 180 in 2h" |
-| **Anomaly** | Sudden AQI changes | "Unusual AQI Spike" (>3 std dev) |
-| **Trend** | Sustained worsening | "Air Quality Worsening (30%↑)" |
-
-## 🎯 Key Achievements
-
-- ✅ **Real Hardware Integration** - BME680 sensor with ESP8266
-- ✅ **6 ML Models Compared** - Accuracy, latency, energy, battery life
-- ✅ **Tsetlin Machine** - Novel ML approach for energy-efficient inference
-- ✅ **LSTM Forecasting** - 6-hour AQI prediction with ~4 AQI MAE
-- ✅ **Intelligent Alerts** - 4 alert types with real-time notifications
-- ✅ **Energy Profiling** - Battery life estimation for edge deployment
-- ✅ **Full-Stack** - Flask API + React Dashboard
-- ✅ **Production Ready** - Error handling, dark mode, responsive UI
-
-## 🔮 Future Enhancements
-
-- [ ] FPGA acceleration for Tsetlin Machine inference
-- [ ] Multi-node sensor network
-- [ ] Docker containerization
-- [ ] Mobile app (React Native)
-- [ ] Cloud sync & historical analytics
-
-## 👨‍💻 Author
-
-**Uwa Uwa Agbai**
-- MSc Embedded Systems & IoT, Newcastle University
-- Research: Energy-Efficient AI Hardware
-- [LinkedIn](https://linkedin.com/in/uwa-agbai)
-- [GitHub](https://github.com/uwaagbai1)
-
-## 📄 License
-
-MIT License - feel free to use for your own projects!
-
----
-
-<p align="center">
-  Built with ❤️ using React, Flask, TensorFlow, and Real IoT Hardware
-</p>
+MIT, see [LICENSE](LICENSE).
